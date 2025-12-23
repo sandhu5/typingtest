@@ -39,7 +39,7 @@ const Register = () => {
         <div className="flex justify-center items-center h-[80vh]">
             <div className="bg-slate-800 p-8 rounded-xl shadow-lg w-96 border border-slate-700">
                 <h2 className="text-2xl font-bold mb-6 text-center text-white">Sign Up</h2>
-                <form onSubmit={handleRegister} className="space-y-4">
+                <form onSubmit={handleRegister} className="space-y-4" autoComplete="off">
                     <div>
                         <label className="block text-sm font-medium text-gray-400">Username</label>
                         <input
@@ -48,6 +48,7 @@ const Register = () => {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             required
+                            autoComplete="off"
                         />
                     </div>
                     <div>
@@ -58,6 +59,7 @@ const Register = () => {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
+                            autoComplete="off"
                         />
                     </div>
                     <div>
@@ -68,6 +70,7 @@ const Register = () => {
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
+                            autoComplete="new-password"
                         />
                     </div>
 
