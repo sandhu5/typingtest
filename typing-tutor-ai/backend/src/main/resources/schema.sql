@@ -1,0 +1,26 @@
+CREATE DATABASE IF NOT EXISTS typing_tutor_db;
+USE typing_tutor_db;
+
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE,
+    avg_wpm DOUBLE DEFAULT 0.0,
+    avg_accuracy DOUBLE DEFAULT 0.0,
+    total_tests INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS test_sessions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    wpm DOUBLE NOT NULL,
+    accuracy DOUBLE NOT NULL,
+    duration_seconds INT NOT NULL,
+    error_count INT NOT NULL,
+    error_keys TEXT,
+    completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
