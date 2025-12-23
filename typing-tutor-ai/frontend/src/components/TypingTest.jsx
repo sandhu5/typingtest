@@ -63,10 +63,40 @@ const TypingTest = () => {
     const inputRef = useRef(null);
     const timerRef = useRef(null);
 
+    const scrollContainerRef = useRef(null);
+
     // Initial load
     useEffect(() => {
         // Wait for user configuration
     }, []);
+
+    // Auto-scroll to active character
+    useEffect(() => {
+        const activeCharIndex = userInput.length;
+        const charEl = document.getElementById(`char-${activeCharIndex}`);
+        const container = scrollContainerRef.current;
+
+        if (charEl && container) {
+            // Calculate position to center the current line
+            const containerHeight = container.clientHeight;
+            const charTop = charEl.offsetTop;
+            const charHeight = charEl.clientHeight;
+
+            // Scroll to center: Char Position - (Half Container - Half Char)
+            // We use the relative offset to the container. 
+            // Since the text div is inside the container, offsetTop is relative to the nearest positioned ancestor.
+            // The container is `relative`, so offsetTop works relative to it (mostly).
+            // Actually, offsetTop is relative to offsetParent. 
+            // If the inner div is not positioned, offsetParent is the container.
+
+            const scrollTarget = charTop - (containerHeight / 2) + (charHeight / 2);
+
+            container.scrollTo({
+                top: scrollTarget,
+                behavior: 'smooth'
+            });
+        }
+    }, [userInput, isActive]);
 
     const startTestSession = () => {
         setIsConfiguring(false);
@@ -101,6 +131,11 @@ const TypingTest = () => {
         setErrorKeys([]);
         if (timerRef.current) clearInterval(timerRef.current);
         if (inputRef.current) inputRef.current.focus();
+
+        // Reset scroll
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = 0;
+        }
     };
 
     const startTimer = () => {
@@ -242,7 +277,7 @@ const TypingTest = () => {
             }
 
             return (
-                <span key={index} className={color + cursorClass}>
+                <span key={index} id={`char-${index}`} className={color + cursorClass}>
                     {char}
                 </span>
             );
@@ -310,14 +345,18 @@ const TypingTest = () => {
                 <>
                     <div className="flex justify-between items-center text-xl font-bold text-slate-300">
                         <div>
-                            {testMode === 'time' ? 'Time Left' : 'Time Elapsed'}: <span className="text-white">{testMode === 'time' ? timeLeft : Math.abs(timeLeft - 60)}s</span>
+                            {testMode === 'time' ? 'Time Left' : 'Time Elapsed'}: <span className="text-white">{testMode === 'time' ? timeLeft : (durationOption - timeLeft)}s</span>
                         </div>
                         <div>WPM: <span className="text-white">{wpm}</span></div>
                         <div>Accuracy: <span className="text-white">{accuracy}%</span></div>
                     </div>
 
-                    <div className="relative bg-slate-800 p-8 rounded-xl border border-slate-700 shadow-lg text-2xl font-mono leading-relaxed min-h-[200px] cursor-text" onClick={() => inputRef.current.focus()}>
-                        <div className="absolute inset-0 p-8 pointer-events-none whitespace-pre-wrap break-words z-10">
+                    <div
+                        ref={scrollContainerRef}
+                        className="relative bg-slate-800 rounded-xl border border-slate-700 shadow-lg text-2xl font-mono leading-relaxed h-60 overflow-y-auto no-scrollbar cursor-text"
+                        onClick={() => inputRef.current.focus()}
+                    >
+                        <div className="p-8 pointer-events-none whitespace-pre-wrap break-words z-10 w-full min-h-full">
                             {renderText()}
                         </div>
                         <textarea
@@ -329,7 +368,15 @@ const TypingTest = () => {
                             autoFocus
                         />
                     </div>
-
+                    <style>{`
+                        .no-scrollbar::-webkit-scrollbar {
+                            display: none;
+                        }
+                        .no-scrollbar {
+                            -ms-overflow-style: none;
+                            scrollbar-width: none;
+                        }
+                    `}</style>
                     <div className="text-center text-slate-500 text-sm">
                         Start typing to begin. {testMode === 'time' && "Stop when time runs out."}
                     </div>

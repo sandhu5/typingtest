@@ -3,73 +3,72 @@ import random
 
 app = Flask(__name__)
 
-# Basic dictionary for generation
-dictionary = [
-    "algorithm", "binary", "compiler", "database", "encryption", "function", 
-    "gateway", "hardware", "internet", "java", "kernel", "latency", "memory", 
-    "network", "object", "processor", "query", "router", "system", "terminal", 
-    "user", "virtual", "wifi", "xml", "yaml", "zip", "python", "stack", "monitor",
-    "keyboard", "mouse", "screen", "code", "debug", "compile", "execute"
-]
-
-
-@app.route('/', methods=['GET'])
-def health_check():
-    return jsonify({"status": "ok", "service": "python-ai-service"})
-
-@app.route('/analyze', methods=['POST'])
-def analyze():
-    data = request.json
-    # data expected: { "sessions": [ { "errorKeys": "a,b" }, ... ] }
-    sessions = data.get('sessions', [])
-    
-    error_counts = {}
-    for session in sessions:
-        keys = session.get('errorKeys', "")
-        if keys:
-            for key in keys.split(','):
-                if key:
-                    error_counts[key] = error_counts.get(key, 0) + 1
-    
-    # Return top 3 weak keys
-    sorted_keys = sorted(error_counts.items(), key=lambda item: item[1], reverse=True)
-    weak_keys = [k for k, v in sorted_keys[:3]]
-    
-    return jsonify({"weakKeys": weak_keys})
+# Extended Dictionaries
+common_words = ["the", "be", "to", "of", "and", "a", "in", "that", "have", "it", "for", "not", "on", "with", "he", "as", "you", "do", "at", "this", "but", "his", "by", "from", "they", "we", "say", "her", "she", "or", "an", "will", "my", "one", "all", "would", "there", "their", "what", "so", "up", "out", "if", "about", "who", "get", "which", "go", "me", "when", "make", "can", "like", "time", "no", "just", "him", "know", "take", "people", "into", "year", "your", "good", "some", "could", "them", "see", "other", "than", "then", "now", "look", "only", "come", "its", "over", "think", "also", "back", "after", "use", "two", "how", "our", "work", "first", "well", "way", "even", "new", "want", "because", "any", "these", "give", "day", "most", "us"]
+tech_words = ["algorithm", "binary", "compiler", "database", "encryption", "function", "gateway", "hardware", "interface", "kernel", "latency", "memory", "network", "object", "processor", "query", "router", "system", "terminal", "variable", "widget", "xml", "yaml", "zip", "python", "stack", "monitor", "keyboard", "mouse", "screen", "code", "debug", "compile", "execute", "asynchronous", "framework", "javascript", "middleware", "proprietary", "recursive", "syntax", "throughput", "virtualization", "api", "backend", "cloud", "deployment", "ethernet", "firmware", "gigabyte", "heuristic"]
+long_words = ["acknowledgment", "characterization", "comprehensiveness", "counterproductive", "disproportionate", "enthusiastically", "indistinguishable", "misinterpretation", "oversimplification", "procrastination", "rationalization", "sophistication", "underestimated", "vulnerability", "xenotransplantation", "yesterday", "zealousness", "administration", "communication", "determination", "examination", "hallucination", "identification", "justification", "multiplication", "qualification", "rehabilitation", "stabilization", "transmission", "unquestionable"]
+symbols = ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "-", "_", "+", "=", "{", "}", "[", "]", "|", "\\", ":", ";", "<", ">", "?", "/", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", ".", ",", "'", '"']
 
 @app.route('/generate', methods=['POST'])
 def generate():
     data = request.json
     weak_keys = data.get('weakKeys', [])
-    length_param = data.get('length', 'medium') # short, medium, long
+    # Mapping 'length' param to Difficulty: short=Easy, medium=Medium, long=Hard
+    difficulty = data.get('length', 'medium') 
     
-    # Filter dictionary for words containing weak keys
+    word_pool = []
+    symbol_rate = 0.0
+    
+    # Configuration based on difficulty
+    if difficulty == 'short': # Easy
+        word_pool = common_words[:50]
+        word_count = 30
+        symbol_rate = 0.0
+    elif difficulty == 'long': # Hard
+        word_pool = tech_words + long_words + common_words
+        word_count = 60
+        symbol_rate = 0.4 # Higher chance multiple tokens have punctuation
+    else: # Medium
+        word_pool = common_words + tech_words[:20] + long_words[:5]
+        word_count = 40
+        symbol_rate = 0.15 # Occasional punctuation
+
+    # Filter for weak keys if present (boost priority)
     weighted_words = []
     if weak_keys:
-        for word in dictionary:
-            for key in weak_keys:
-                if key in word:
-                    weighted_words.append(word)
-                    break
+        for word in word_pool:
+            if any(k in word for k in weak_keys):
+                weighted_words.append(word)
     
-    # Determine word count based on length param
-    word_count = 50 # Default medium
-    if length_param == 'short':
-        word_count = 20
-    elif length_param == 'long':
-        word_count = 100
-        
-    # Generate text
     generated_text = []
     
     for _ in range(word_count):
-        if weighted_words and random.random() < 0.7:  # 70% chance to pick hard word
-            generated_text.append(random.choice(weighted_words))
+        word = ""
+        # 40% chance to pick from weak key words if available
+        if weighted_words and random.random() < 0.4:
+            word = random.choice(weighted_words)
         else:
-            generated_text.append(random.choice(dictionary))
+            word = random.choice(word_pool)
             
-    # Capitalize first letter and ensure basic sentence structure
+        # Add symbols/punctuation based on difficulty
+        if random.random() < symbol_rate:
+            sym = random.choice(symbols)
+            # Prepend or append? Usually append for punctuation, but hard mode can be random
+            if difficulty == 'long' and random.random() > 0.7:
+                 word = sym + word # Prepend (e.g. (word)
+            else:
+                 word = word + sym # Append (e.g. word,)
+            
+        generated_text.append(word)
+            
+    # Join
     text = " ".join(generated_text)
+
+    
+    # Capitalize first letter
+    if text:
+        text = text[0].upper() + text[1:]
+        
     return jsonify({"text": text})
 
 if __name__ == '__main__':
